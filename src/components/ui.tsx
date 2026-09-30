@@ -1,5 +1,5 @@
 // Small shared UI primitives. Tap targets are ≥ 44px tall throughout (mobile-first).
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react';
 
 export function Button({
   variant = 'primary',
@@ -44,7 +44,7 @@ export function Field({
   );
 }
 
-export function TextInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function TextInput({ className = '', ...props }: ComponentProps<'input'>) {
   return (
     <input
       className={`min-h-12 w-full rounded-xl border border-border bg-surface px-4 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/25 aria-[invalid=true]:border-danger ${className}`}

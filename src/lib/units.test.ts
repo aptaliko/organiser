@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDims, formatLength, formatVolume, parseLength } from './units';
+import { formatDims, formatLength, formatVolume, parseLength, pickDims } from './units';
 
 describe('formatLength', () => {
   it.each([
@@ -66,5 +66,12 @@ describe('parseLength', () => {
 
   it.each(['abc', '-5', '0', '0.2', '1..2', '12 inches', '3mm'])('%j is invalid', (input) => {
     expect(parseLength(input)).toBeNaN();
+  });
+});
+
+describe('pickDims', () => {
+  it('keeps only the dimension fields', () => {
+    const row = { id: 1, name: 'Box', quantity: 2, widthCm: 1, depthCm: null, heightCm: 3 };
+    expect(pickDims(row)).toEqual({ widthCm: 1, depthCm: null, heightCm: 3 });
   });
 });

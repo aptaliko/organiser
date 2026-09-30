@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { BottomNav } from '@/components/BottomNav';
+import { ToastProvider } from '@/components/Toast';
 import { getHousehold } from '@/db/queries/households';
 import { currentHousehold } from '@/lib/household';
 import { HttpError } from '@/lib/http';
@@ -16,7 +17,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   }
 
   return (
-    <>
+    <ToastProvider>
       <header className="sticky top-0 z-10 border-b border-border bg-bg/95 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-12 max-w-2xl items-center px-4">
           <span className="truncate text-sm font-semibold text-muted">{householdName}</span>
@@ -26,6 +27,6 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
         {children}
       </main>
       <BottomNav />
-    </>
+    </ToastProvider>
   );
 }

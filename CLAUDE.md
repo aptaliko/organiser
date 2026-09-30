@@ -57,6 +57,24 @@ creates `unaccent` + `pg_trgm` and the IMMUTABLE `f_unaccent()` wrapper used by 
 - **API routes** wrap handlers in `handle()` (`src/lib/http.ts`): throw `HttpError`
   (`notFound()`, `badRequest()`) or let a `ZodError` escape → JSON `{ error, details }`.
 - **Queries**: `src/db/queries/*.ts`, one file per entity, plain functions using `db`.
+  Areas are loaded **flat per household** (`listAreas`) and trees/breadcrumbs/cycle checks
+  are computed in memory with `src/lib/areaTree.ts`.
+- **Drizzle gotcha — correlated subqueries**: `${areas.id}` inside a `sql` template renders as
+  a bare `"id"`, which inside a subquery binds to the *inner* table. Spell out the outer
+  column (`"areas"."id"`), as in `listAreas`/`listItemsInArea`.
+- **Arrays into raw SQL**: drizzle expands a JS array in `sql\`\`` into a param list, so pass
+  arrays as JSON (`${JSON.stringify(ids)}::jsonb`) — see `createItem`/`createArea`, which
+  insert the row, its tags and its photos in one atomic CTE statement.
+- **Photos** (`src/lib/photoStorage.ts`, `src/lib/photoUpload.ts`): the browser resizes to
+  ≤1600px JPEG, then uploads straight to Vercel Blob via a client token from
+  `/api/photos/upload`. Without `BLOB_READ_WRITE_TOKEN` (local dev only — production throws)
+  files go to `.local-uploads/` and are served by `/api/photos/local/[name]`. Photo rows
+  point at URLs; a URL may be shared by several rows (split items), so storage is deleted only
+  via `unreferencedUrls()`. Accepted URLs are whitelisted in `isAllowedPhotoUrl`.
+- **Moves are not edits**: PATCH on areas/items never changes `parentId`/`areaId` — that is the
+  move endpoint's job (milestone M3), which checks cycles and supports partial quantities.
+- **Forms** (`ItemForm`, `AreaForm`) seed dimension state with `pickDims(row)` — never the
+  whole row, or spreading it into the request body resends stale fields.
 - **i18n**: `src/i18n/en.ts` is the source of truth; `el.ts` is typed
   `Record<TKey, string>` so a missing Greek string is a type error (and `i18n.test.ts`
   checks placeholders). Server: `const { t } = await getT()`; client: `useT()`. Signed-in
@@ -72,6 +90,7 @@ creates `unaccent` + `pg_trgm` and the IMMUTABLE `f_unaccent()` wrapper used by 
 
 ## Testing convention
 
-Vitest covers pure logic only (auth tokens, password hashing, i18n dictionaries, units, and —
-as they land — space math, area-tree/cycle logic, move planning). API routes and pages are
+Vitest covers pure logic only (auth tokens, password hashing, i18n dictionaries, units,
+area tree/cycle logic, QR codes, image sizing, recents, relative time, and — as they land —
+space math and move planning). API routes and pages are
 verified manually / with a browser.

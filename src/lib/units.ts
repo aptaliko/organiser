@@ -59,3 +59,8 @@ export function parseLength(input: string): number | null {
   const cm = Math.round(value);
   return cm >= 1 ? cm : NaN;
 }
+
+/** Just the three dimension fields — e.g. to seed a form from a full item/area row. */
+export function pickDims(d: Dims): Dims {
+  return { widthCm: d.widthCm, depthCm: d.depthCm, heightCm: d.heightCm };
+}
