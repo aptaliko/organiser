@@ -86,3 +86,17 @@ export const tagCreateSchema = z.object({ name: z.string().trim().min(1).max(60)
 export const tagUpdateSchema = z
   .object({ name: z.string().trim().min(1).max(60), color: z.string().regex(/^#[0-9a-f]{6}$/i) })
   .partial();
+
+export const moveSchema = z
+  .object({
+    items: z
+      .array(z.object({ id: z.number().int().positive(), quantity: z.number().int().positive().optional() }))
+      .max(500)
+      .default([]),
+    areas: z.array(z.number().int().positive()).max(500).default([]),
+    targetAreaId: z.number().int().positive().nullable(),
+    /** Unset: answer 409 merge_possible when a same-named item is already in the target. */
+    mergeSameName: z.boolean().optional(),
+  })
+  .refine((b) => b.items.length + b.areas.length > 0, 'nothing to move');
+export type MoveBody = z.input<typeof moveSchema>;
