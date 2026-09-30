@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { getLocale } from '@/i18n/server';
 import { I18nProvider } from '@/i18n/I18nProvider';
+import { NativeAppBridge } from '@/components/NativeAppBridge';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
     <html lang={locale} className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <I18nProvider locale={locale}>{children}</I18nProvider>
+        <NativeAppBridge />
       </body>
     </html>
   );

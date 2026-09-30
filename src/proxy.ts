@@ -10,6 +10,7 @@ const PUBLIC_PATHS = new Set([
   '/manifest.webmanifest',
   '/icon.svg',
   '/apple-icon.png',
+  '/.well-known/assetlinks.json',
 ]);
 const PUBLIC_PREFIXES = ['/invite/', '/icons/'];
 

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Organiser</title>
+  <style>
+    :root { --bg: #f6f7f9; --text: #16202a; --muted: #5d6b79; --accent: #0f766e; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0e1418; --text: #e6edf2; --muted: #93a3b1; --accent: #2dd4bf; } }
+    html, body { height: 100%; margin: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Roboto, sans-serif;
+           display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; box-sizing: border-box; }
+    h1 { font-size: 20px; margin: 16px 0 8px; }
+    p { color: var(--muted); margin: 0 0 4px; line-height: 1.4; }
+    button { margin-top: 24px; min-height: 48px; padding: 0 28px; border: 0; border-radius: 12px;
+             background: var(--accent); color: #fff; font-size: 16px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <svg width="56" height="56" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="4" y="4" width="40" height="40" rx="11" fill="#0f766e" />
+      <path d="M13 21l11-6 11 6v11l-11 6-11-6z M13 21l11 6 11-6M24 27v11" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round" />
+    </svg>
+    <h1>Χωρίς σύνδεση · No connection</h1>
+    <p>Το Organiser χρειάζεται internet.</p>
+    <p>Organiser needs an internet connection.</p>
+    <button onclick="history.back()">Δοκίμασε ξανά · Try again</button>
+  </main>
+</body>
+</html>

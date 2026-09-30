@@ -264,6 +264,7 @@ export const el: Record<TKey, string> = {
   'labels.selectNone': 'Καμία επιλογή',
   'labels.selected': '{count} ετικέτες',
   'labels.none': 'Διάλεξε τουλάχιστον έναν χώρο.',
+  'labels.printFromBrowser': 'Για εκτύπωση, άνοιξε το {url}/labels σε browser (σε υπολογιστή ή στο Chrome) — η εφαρμογή δεν μπορεί να εκτυπώσει.',
   'labels.notFound': 'Αυτή η ετικέτα ανήκει σε χώρο στον οποίο δεν έχεις πρόσβαση.',
 
   'settings.title': 'Ρυθμίσεις',

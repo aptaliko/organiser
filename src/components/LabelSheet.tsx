@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useT } from '@/i18n/I18nProvider';
+import { useIsNativeApp } from '@/lib/nativeApp';
 import { Button } from './ui';
 
 export interface Label {
@@ -19,6 +20,8 @@ export interface Label {
  */
 export function LabelSheet({ labels, initialSelected }: { labels: Label[]; initialSelected: number[] }) {
   const { t } = useT();
+  // The Android app's WebView can't print: choose labels there, print from a browser.
+  const native = useIsNativeApp();
   const [selected, setSelected] = useState<Set<number>>(new Set(initialSelected));
   const chosen = labels.filter((l) => selected.has(l.id));
 
@@ -52,11 +55,15 @@ export function LabelSheet({ labels, initialSelected }: { labels: Label[]; initi
             </li>
           ))}
         </ul>
-        <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 mb-4">
-          <Button className="w-full shadow-lg" disabled={chosen.length === 0} onClick={() => window.print()}>
-            {t('labels.print')} · {t('labels.selected', { count: chosen.length })}
-          </Button>
-        </div>
+        {native ? (
+          <p className="mb-4 rounded-2xl bg-accent-soft px-4 py-3 text-sm">{t('labels.printFromBrowser', { url: window.location.origin })}</p>
+        ) : (
+          <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 mb-4">
+            <Button className="w-full shadow-lg" disabled={chosen.length === 0} onClick={() => window.print()}>
+              {t('labels.print')} · {t('labels.selected', { count: chosen.length })}
+            </Button>
+          </div>
+        )}
         {chosen.length === 0 && <p className="text-center text-sm text-muted">{t('labels.none')}</p>}
       </div>
 

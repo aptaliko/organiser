@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useT } from '@/i18n/I18nProvider';
 import { api } from '@/lib/apiClient';
+import { isNativeApp } from '@/lib/nativeApp';
 import { CopyIcon, ShareIcon } from '../icons';
 import { useToast } from '../Toast';
 import { Button, Card } from '../ui';
@@ -23,9 +24,14 @@ export function InvitePanel({ householdName, iAmOwner }: { householdName: string
   }
 
   async function share(link: string) {
-    // The share sheet where supported (phones); otherwise copy.
-    if ('share' in navigator) {
-      await navigator.share({ title: 'Organiser', text: t('invite.shareText', { name: householdName }), url: link }).catch(() => {});
+    // The phone's share sheet: native in the Android app (its WebView has no Web Share API),
+    // the Web Share API in browsers that have it, otherwise copy.
+    const text = t('invite.shareText', { name: householdName });
+    if (isNativeApp()) {
+      const { Share } = await import('@capacitor/share');
+      await Share.share({ title: 'Organiser', text, url: link }).catch(() => {});
+    } else if ('share' in navigator) {
+      await navigator.share({ title: 'Organiser', text, url: link }).catch(() => {});
     } else {
       await copy(link);
     }

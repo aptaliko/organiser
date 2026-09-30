@@ -19,6 +19,9 @@ photo of the box. English and Greek.
 - Households shared with family through invite links (WhatsApp/Viber-friendly).
 - Printable QR labels: scan a box with the phone camera to see what's inside.
 
+**Android app**: a Capacitor shell around the live site — `npm run build:android` on a Mac with
+JDK 21 + Android SDK builds an installable APK. See [docs/android.md](docs/android.md).
+
 Docs: [design spec](docs/superpowers/specs/2026-09-30-organiser-mvp-design.md) ·
 [implementation plan](docs/superpowers/plans/2026-09-30-organiser-mvp.md) ·
 [manual testing checklist](docs/manual-testing-checklist.md)
@@ -47,6 +50,7 @@ Checks: `npm run lint && npm run typecheck && npm test`.
 | `APP_URL` | Public base URL, used in invite links and QR labels (e.g. `https://organiser-xyz.vercel.app`) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token, for photos (required in production) |
 | `NEON_LOCAL` | `1` only for local Docker development |
+| `ANDROID_CERT_SHA256` | Optional: signing-key fingerprint(s) of the Android app, so QR labels open the app ([docs/android.md](docs/android.md)) |
 
 ## Deploying to Vercel
 

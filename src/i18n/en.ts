@@ -264,6 +264,7 @@ export const en = {
   'labels.selectNone': 'Select none',
   'labels.selected': '{count} labels',
   'labels.none': 'Choose at least one place.',
+  'labels.printFromBrowser': 'To print, open {url}/labels in a browser (on a computer or in Chrome) — the app itself can’t print.',
   'labels.notFound': 'This label belongs to a place you don’t have access to.',
 
   'settings.title': 'Settings',

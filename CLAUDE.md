@@ -31,6 +31,7 @@ npm run db:generate    # drizzle-kit generate — after editing src/db/schema.ts
 npm run db:migrate     # apply migrations (uses .env.local); production builds on Vercel run
                        # them automatically first (scripts/migrate-on-deploy.ts, VERCEL_ENV=production only)
 npm run db:seed:dev    # demo data (idempotent): demo@local / demo1234
+npm run build:android  # Android debug APK (Mac with JDK 21 + Android SDK) — docs/android.md
 ```
 
 Custom SQL migrations (extensions, functions, expression indexes drizzle-kit can't express):
@@ -103,6 +104,17 @@ creates `unaccent` + `pg_trgm` and the IMMUTABLE `f_unaccent()` wrapper used by 
   `/a/[code]` (behind login) switches to that area's household if the user is a member, then
   redirects to the area. `/labels` renders SVG QR codes server-side; print CSS in
   `globals.css` lays out A4 3 × 7 (63.5 × 38.1 mm) and hides the app chrome (`print:hidden`).
+- **Android app** (`capacitor.config.ts`, `android/`, `docs/android.md`): a Capacitor 8 shell whose
+  WebView loads the live site (`server.url`, default `https://organiser-aptaliko.vercel.app`,
+  override with `ORGANISER_URL`) — no static export, unlike glentify, so there are no native
+  twin routes or bearer tokens: the cookie session works as on the web. Only
+  `native-shell/offline.html` ships in the APK (`server.errorPath`). Web code detects the shell
+  with `isNativeApp()` / `useIsNativeApp()` (`src/lib/nativeApp.ts`; the hook is hydration-safe)
+  and loads plugins lazily (`@capacitor/share` for invites, `@capacitor/app` in
+  `NativeAppBridge` to route App Links `/a/…` and `/invite/…`). App Links verify through
+  `/.well-known/assetlinks.json` (rewrite → `/api/assetlinks`, fingerprints from
+  `ANDROID_CERT_SHA256`). Don't declare the CAMERA permission: without it, `<input capture>`
+  opens the camera app with no permission prompt. Icons/splash: `scripts/generate-icons.mjs`.
 - **Forms** (`ItemForm`, `AreaForm`) seed dimension state with `pickDims(row)` — never the
   whole row, or spreading it into the request body resends stale fields.
 - **i18n**: `src/i18n/en.ts` is the source of truth; `el.ts` is typed

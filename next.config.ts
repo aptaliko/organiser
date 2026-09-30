@@ -1,7 +1,12 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  rewrites() {
+    return [
+      // Android App Links verification for the Capacitor app (see docs/android.md).
+      { source: '/.well-known/assetlinks.json', destination: '/api/assetlinks' },
+    ];
+  },
 };
 
 export default nextConfig;
