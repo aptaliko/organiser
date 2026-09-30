@@ -11,6 +11,21 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Gradle finds the Android SDK through android/local.properties (not committed — it's
+# machine-specific) or ANDROID_HOME. Write local.properties on first run when we can find it.
+if [ ! -f android/local.properties ]; then
+  SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+  if [ -z "$SDK_DIR" ] && [ -d "$HOME/Library/Android/sdk" ]; then SDK_DIR="$HOME/Library/Android/sdk"; fi
+  if [ -z "$SDK_DIR" ] && [ -d "$HOME/Android/Sdk" ]; then SDK_DIR="$HOME/Android/Sdk"; fi
+  if [ -z "$SDK_DIR" ]; then
+    echo "build-android: Android SDK not found. Install Android Studio (it installs the SDK), or set" >&2
+    echo "build-android: ANDROID_HOME, or create android/local.properties with: sdk.dir=/path/to/sdk" >&2
+    exit 1
+  fi
+  echo "sdk.dir=$SDK_DIR" > android/local.properties
+  echo "▶ Using Android SDK at $SDK_DIR (saved to android/local.properties)"
+fi
+
 echo "▶ Syncing Capacitor (config, plugins) into android/ — site: ${ORGANISER_URL:-https://organiser-aptaliko.vercel.app}"
 npx cap sync android
 
