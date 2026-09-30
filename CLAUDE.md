@@ -29,6 +29,7 @@ npm run dev:up         # Docker Postgres + neon-http proxy, migrate, seed. `-- -
 npm run dev:down       # stop the local stack
 npm run db:generate    # drizzle-kit generate — after editing src/db/schema.ts
 npm run db:migrate     # apply migrations (uses .env.local)
+npm run db:seed:dev    # demo data (idempotent): demo@local / demo1234
 ```
 
 Custom SQL migrations (extensions, functions, expression indexes drizzle-kit can't express):
@@ -89,6 +90,18 @@ creates `unaccent` + `pg_trgm` and the IMMUTABLE `f_unaccent()` wrapper used by 
   description and tags. The home screen keeps the query in the URL (`/?q=`, `/?tag=`) via
   debounced `router.replace` and renders results on the server — don't sync it with raw
   `history.replaceState`: on mount that runs before Next patches `history` and breaks Back.
+- **Deleting a place** (`DELETE /api/areas/[id]?contents=moveUp|deleteAll`): non-empty without
+  a choice → `409 not_empty` with counts. `deleteAreaSubtree` clears `parent_id` inside the
+  subtree before deleting, because `ON DELETE RESTRICT` is checked row by row.
+- **Households & invites**: invite links carry a random token; only its sha256 is stored
+  (`householdInvites.tokenHash`), multi-use for 7 days, revocable by owners. `/invite/[token]`
+  is public; registering with `?invite=` joins that household instead of creating one.
+  `checkLeave` (`src/lib/householdRules.ts`) keeps every household with a member and an owner.
+  Member/role management is owner-only (403 — the household itself is the caller's).
+- **QR labels**: each area has a 6-char `qrCode`; labels encode `${APP_URL}/a/${code}`.
+  `/a/[code]` (behind login) switches to that area's household if the user is a member, then
+  redirects to the area. `/labels` renders SVG QR codes server-side; print CSS in
+  `globals.css` lays out A4 3 × 7 (63.5 × 38.1 mm) and hides the app chrome (`print:hidden`).
 - **Forms** (`ItemForm`, `AreaForm`) seed dimension state with `pickDims(row)` — never the
   whole row, or spreading it into the request body resends stale fields.
 - **i18n**: `src/i18n/en.ts` is the source of truth; `el.ts` is typed
@@ -106,7 +119,7 @@ creates `unaccent` + `pg_trgm` and the IMMUTABLE `f_unaccent()` wrapper used by 
 
 ## Testing convention
 
-Vitest covers pure logic only (auth tokens, password hashing, i18n dictionaries, units,
-area tree/cycle logic, QR codes, image sizing, recents, relative time, and — as they land —
-space math and move planning). API routes and pages are
-verified manually / with a browser.
+Vitest covers pure logic only (auth tokens, password hashing, invite tokens, household leave
+rules, i18n dictionaries, units, area tree/cycle logic, QR codes, image sizing, recents,
+relative time, space math, move planning, search result locating). API routes and pages are
+verified manually / with a browser — see `docs/manual-testing-checklist.md`.
