@@ -1,6 +1,6 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../client';
-import { areas, type Area } from '../schema';
+import { areas, items, photos, type Area } from '../schema';
 import { isUniqueViolation } from '@/lib/http';
 import { generateQrCode } from '@/lib/qrCode';
 import type { AreaCreateInput, AreaUpdateInput } from '@/lib/schemas';
@@ -91,4 +91,46 @@ export async function updateArea(householdId: number, id: number, patch: AreaUpd
     .update(areas)
     .set({ ...patch, updatedAt: new Date() })
     .where(and(eq(areas.householdId, householdId), eq(areas.id, id)));
+}
+
+/**
+ * Deletes a place, first moving what's directly inside it (items and places) up to its parent
+ * — or to Unplaced / top level when it has none. One atomic batch. Returns the place's photo
+ * URLs for storage cleanup.
+ */
+export async function deleteAreaMovingContentsUp(householdId: number, area: Area): Promise<string[]> {
+  const urls = await db.select({ url: photos.url }).from(photos).where(eq(photos.areaId, area.id));
+  const now = new Date();
+  await db.batch([
+    db
+      .update(areas)
+      .set({ parentId: area.parentId, updatedAt: now })
+      .where(and(eq(areas.householdId, householdId), eq(areas.parentId, area.id))),
+    db
+      .update(items)
+      .set({ areaId: area.parentId, updatedAt: now })
+      .where(and(eq(items.householdId, householdId), eq(items.areaId, area.id))),
+    db.delete(areas).where(and(eq(areas.householdId, householdId), eq(areas.id, area.id))),
+  ]);
+  return urls.map((r) => r.url);
+}
+
+/**
+ * Deletes a place with everything inside it, at any depth (`subtreeIds` includes the place).
+ * Parent links inside the subtree are cleared first because parent_id is ON DELETE RESTRICT,
+ * which Postgres checks row by row. Returns every affected photo URL for storage cleanup.
+ */
+export async function deleteAreaSubtree(householdId: number, subtreeIds: number[]): Promise<string[]> {
+  const ids = subtreeIds;
+  const urls = await db
+    .select({ url: photos.url })
+    .from(photos)
+    .leftJoin(items, eq(items.id, photos.itemId))
+    .where(and(eq(photos.householdId, householdId), or(inArray(photos.areaId, ids), inArray(items.areaId, ids))));
+  await db.batch([
+    db.delete(items).where(and(eq(items.householdId, householdId), inArray(items.areaId, ids))),
+    db.update(areas).set({ parentId: null }).where(and(eq(areas.householdId, householdId), inArray(areas.id, ids))),
+    db.delete(areas).where(and(eq(areas.householdId, householdId), inArray(areas.id, ids))),
+  ]);
+  return urls.map((r) => r.url);
 }
