@@ -41,6 +41,27 @@ export async function createUserWithHousehold(input: {
   return Number(result.rows[0].id);
 }
 
+/** A new user who joins an existing household (from an invite) instead of getting their own. */
+export async function createUserInHousehold(input: {
+  email: string;
+  passwordHash: string;
+  name: string;
+  locale: Locale;
+  householdId: number;
+}): Promise<number> {
+  const result = await db.execute<{ id: number }>(sql`
+    WITH u AS (
+      INSERT INTO users (email, password_hash, name, locale, active_household_id)
+      VALUES (${input.email.trim().toLowerCase()}, ${input.passwordHash}, ${input.name}, ${input.locale}, ${input.householdId})
+      RETURNING id
+    ), m AS (
+      INSERT INTO household_members (household_id, user_id, role) SELECT ${input.householdId}, id, 'member' FROM u
+    )
+    SELECT id FROM u
+  `);
+  return Number(result.rows[0].id);
+}
+
 export async function updateUser(id: number, patch: Partial<Pick<User, 'name' | 'locale' | 'activeHouseholdId'>>) {
   await db.update(users).set(patch).where(eq(users.id, id));
 }

@@ -11,6 +11,7 @@ const ERRORS: Record<string, TKey> = {
   invalid_credentials: 'auth.error.invalidCredentials',
   email_taken: 'auth.error.emailTaken',
   invalid: 'auth.error.invalid',
+  invite_invalid: 'invite.invalid',
 };
 
 /** Only same-origin relative paths; never `//evil.com` or absolute URLs. */
@@ -33,7 +34,13 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
     const body =
       mode === 'login'
         ? { email: form.get('email'), password: form.get('password') }
-        : { name: form.get('name'), email: form.get('email'), password: form.get('password'), locale };
+        : {
+            name: form.get('name'),
+            email: form.get('email'),
+            password: form.get('password'),
+            locale,
+            invite: searchParams.get('invite') ?? undefined,
+          };
     try {
       const res = await fetch(`/api/${mode}`, {
         method: 'POST',
@@ -53,8 +60,14 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
     setSubmitting(false);
   }
 
-  const next = searchParams.get('next');
-  const switchHref = `${mode === 'login' ? '/register' : '/login'}${next ? `?next=${encodeURIComponent(next)}` : ''}`;
+  const invite = searchParams.get('invite');
+  // Keep an invite through the login/register switch: login returns to the invite page.
+  const next = searchParams.get('next') ?? (invite ? `/invite/${invite}` : null);
+  const inviteFromNext = next?.match(/^\/invite\/([\w-]+)$/)?.[1];
+  const switchHref =
+    mode === 'login' && inviteFromNext
+      ? `/register?invite=${inviteFromNext}`
+      : `${mode === 'login' ? '/register' : '/login'}${next ? `?next=${encodeURIComponent(next)}` : ''}`;
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate={false}>

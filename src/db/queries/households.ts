@@ -1,6 +1,6 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../client';
-import { householdMembers, households, users } from '../schema';
+import { householdInvites, householdMembers, households, users } from '../schema';
 
 export type Role = 'owner' | 'member';
 
@@ -39,4 +39,63 @@ export async function createHouseholdFor(userId: number, name: string): Promise<
 export async function getHousehold(id: number) {
   const [row] = await db.select().from(households).where(eq(households.id, id));
   return row;
+}
+
+export async function renameHousehold(id: number, name: string) {
+  await db.update(households).set({ name }).where(eq(households.id, id));
+}
+
+export function listMembers(householdId: number) {
+  return db
+    .select({ userId: users.id, name: users.name, email: users.email, role: householdMembers.role })
+    .from(householdMembers)
+    .innerJoin(users, eq(users.id, householdMembers.userId))
+    .where(eq(householdMembers.householdId, householdId))
+    .orderBy(asc(householdMembers.createdAt));
+}
+
+/** Adds the user (as member, if not already in) and makes it their active household. */
+export async function joinHousehold(userId: number, householdId: number) {
+  await db.batch([
+    db.insert(householdMembers).values({ householdId, userId, role: 'member' }).onConflictDoNothing(),
+    db.update(users).set({ activeHouseholdId: householdId }).where(eq(users.id, userId)),
+  ]);
+}
+
+export async function removeMember(householdId: number, userId: number) {
+  await db
+    .delete(householdMembers)
+    .where(and(eq(householdMembers.householdId, householdId), eq(householdMembers.userId, userId)));
+}
+
+export async function setRole(householdId: number, userId: number, role: Role) {
+  await db
+    .update(householdMembers)
+    .set({ role })
+    .where(and(eq(householdMembers.householdId, householdId), eq(householdMembers.userId, userId)));
+}
+
+export async function createInvite(householdId: number, createdBy: number, tokenHash: string, expiresAt: Date) {
+  await db.insert(householdInvites).values({ householdId, createdBy, tokenHash, expiresAt });
+}
+
+export async function findInvite(tokenHash: string) {
+  const [row] = await db
+    .select({
+      householdId: householdInvites.householdId,
+      expiresAt: householdInvites.expiresAt,
+      revokedAt: householdInvites.revokedAt,
+      householdName: households.name,
+    })
+    .from(householdInvites)
+    .innerJoin(households, eq(households.id, householdInvites.householdId))
+    .where(eq(householdInvites.tokenHash, tokenHash));
+  return row;
+}
+
+export async function revokeInvites(householdId: number) {
+  await db
+    .update(householdInvites)
+    .set({ revokedAt: sql`now()` })
+    .where(and(eq(householdInvites.householdId, householdId), isNull(householdInvites.revokedAt)));
 }
