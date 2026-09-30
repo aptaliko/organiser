@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthCookieName, verifySessionToken } from '@/lib/auth';
 
 // Paths reachable without a session — auth pages and the endpoints that establish one.
-const PUBLIC_PATHS = new Set(['/login', '/register', '/api/login', '/api/register', '/manifest.webmanifest']);
+const PUBLIC_PATHS = new Set([
+  '/login',
+  '/register',
+  '/api/login',
+  '/api/register',
+  '/manifest.webmanifest',
+  '/icon.svg',
+  '/apple-icon.png',
+]);
 const PUBLIC_PREFIXES = ['/invite/', '/icons/'];
 
 function isPublic(pathname: string): boolean {
