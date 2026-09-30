@@ -2,16 +2,20 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { DeleteItemButton } from '@/components/DeleteItemButton';
+import { FindPlace } from '@/components/FindPlace';
+import { ItemActions } from '@/components/ItemActions';
 import { PencilIcon, PinIcon } from '@/components/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { PhotoGallery } from '@/components/PhotoGallery';
-import { listAreas } from '@/db/queries/areas';
+import { SectionTitle } from '@/components/Rows';
 import { getItem } from '@/db/queries/items';
 import { getT } from '@/i18n/server';
 import { pathTo } from '@/lib/areaTree';
 import { currentHousehold } from '@/lib/household';
 import { formatRelative } from '@/lib/time';
-import { formatDims } from '@/lib/units';
+import { rankPlaces, volume } from '@/lib/space';
+import { formatDims, pickDims } from '@/lib/units';
+import { loadPlaces } from '@/lib/viewModels';
 
 export default async function ItemPage({ params }: PageProps<'/items/[id]'>) {
   const { t, locale } = await getT();
@@ -20,9 +24,25 @@ export default async function ItemPage({ params }: PageProps<'/items/[id]'>) {
   const item = Number.isInteger(id) ? await getItem(householdId, id) : undefined;
   if (!item) notFound();
 
-  const areas = item.areaId !== null ? await listAreas(householdId) : [];
-  const path = item.areaId !== null ? pathTo(areas, item.areaId) : [];
+  const { areas, usage, pickerAreas } = await loadPlaces(householdId);
+  const byId = new Map(areas.map((a) => [a.id, a]));
+  const path = item.areaId !== null ? pathTo(byId, item.areaId) : [];
   const dims = formatDims(item, locale);
+  const itemDims = pickDims(item);
+  // "Where would it fit?": every other place with room for the whole quantity, emptiest first.
+  const places =
+    volume(itemDims) === null
+      ? null
+      : rankPlaces(
+          itemDims,
+          item.quantity,
+          areas.filter((a) => a.id !== item.areaId).map((a) => ({ id: a.id, dims: pickDims(a), usage: usage.get(a.id)! })),
+        )
+          .slice(0, 5)
+          .map((c) => {
+            const a = byId.get(c.id)!;
+            return { id: a.id, name: a.name, coverUrl: a.coverUrl, free: c.usage.free!, path: pathTo(byId, a.id).slice(0, -1) };
+          });
 
   return (
     <div>
@@ -50,6 +70,13 @@ export default async function ItemPage({ params }: PageProps<'/items/[id]'>) {
           </div>
         </div>
 
+        <ItemActions
+          item={{ id: item.id, name: item.name, quantity: item.quantity, dims: itemDims }}
+          placed={item.areaId !== null}
+          pickerAreas={pickerAreas}
+          householdId={householdId}
+        />
+
         {item.photos.length > 0 && <PhotoGallery urls={item.photos.map((p) => p.url)} alt={item.name} />}
 
         <dl className="grid grid-cols-2 gap-3">
@@ -66,14 +93,29 @@ export default async function ItemPage({ params }: PageProps<'/items/[id]'>) {
         {item.tags.length > 0 && (
           <ul className="flex flex-wrap gap-2" aria-label={t('item.tags')}>
             {item.tags.map((tag) => (
-              <li key={tag.id} className="rounded-full px-3 py-1 text-sm font-medium text-white" style={{ backgroundColor: tag.color }}>
-                {tag.name}
+              <li key={tag.id}>
+                <Link
+                  href={`/?tag=${tag.id}`}
+                  className="inline-flex min-h-9 items-center rounded-full px-3 text-sm font-medium text-white"
+                  style={{ backgroundColor: tag.color }}
+                >
+                  {tag.name}
+                </Link>
               </li>
             ))}
           </ul>
         )}
 
         {item.description && <p className="whitespace-pre-line">{item.description}</p>}
+
+        <section>
+          <SectionTitle>{t('findPlace.title')}</SectionTitle>
+          {places === null ? (
+            <p className="px-2 text-sm text-muted">{t('findPlace.needDims')}</p>
+          ) : (
+            <FindPlace itemId={item.id} options={places} />
+          )}
+        </section>
 
         <p className="text-sm text-muted">{t('time.updated', { when: formatRelative(item.updatedAt, locale) })}</p>
 

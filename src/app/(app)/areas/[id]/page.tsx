@@ -1,18 +1,21 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { AreaActions } from '@/components/AreaActions';
 import { Breadcrumb } from '@/components/Breadcrumb';
+import { FillBar } from '@/components/FillBar';
 import { PencilIcon, PinIcon, PlusIcon } from '@/components/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { PhotoGallery } from '@/components/PhotoGallery';
 import { LinkRow, SectionTitle } from '@/components/Rows';
-import { getArea, listAreas } from '@/db/queries/areas';
+import { SelectableItems } from '@/components/SelectableItems';
+import { getArea } from '@/db/queries/areas';
 import { listItemsInArea } from '@/db/queries/items';
 import { listPhotos } from '@/db/queries/photos';
 import { getT } from '@/i18n/server';
 import { byName, effectiveAddress, pathTo } from '@/lib/areaTree';
 import { currentHousehold } from '@/lib/household';
 import { formatDims } from '@/lib/units';
-import { mapsUrl } from '@/lib/viewModels';
+import { loadPlaces, mapsUrl } from '@/lib/viewModels';
 
 export default async function AreaPage({ params }: PageProps<'/areas/[id]'>) {
   const { t, locale } = await getT();
@@ -21,8 +24,8 @@ export default async function AreaPage({ params }: PageProps<'/areas/[id]'>) {
   const area = Number.isInteger(id) ? await getArea(householdId, id) : undefined;
   if (!area) notFound();
 
-  const [areas, items, photos] = await Promise.all([
-    listAreas(householdId),
+  const [{ areas, usage, pickerAreas }, items, photos] = await Promise.all([
+    loadPlaces(householdId),
     listItemsInArea(householdId, area.id),
     listPhotos(householdId, { areaId: area.id }),
   ]);
@@ -63,6 +66,7 @@ export default async function AreaPage({ params }: PageProps<'/areas/[id]'>) {
             </div>
           )}
         </dl>
+        <FillBar usage={usage.get(area.id)!} />
         <div className="grid grid-cols-2 gap-2">
           <Link href={`/add/item?areaId=${area.id}`} className="flex min-h-12 items-center justify-center gap-1 whitespace-nowrap rounded-xl bg-accent px-2 text-sm font-semibold text-on-accent">
             <PlusIcon className="h-4 w-4 shrink-0" />
@@ -73,6 +77,7 @@ export default async function AreaPage({ params }: PageProps<'/areas/[id]'>) {
             {t('area.addSubPlace')}
           </Link>
         </div>
+        <AreaActions area={{ id: area.id, name: area.name }} pickerAreas={pickerAreas} householdId={householdId} />
       </div>
 
       {children.length > 0 && (
@@ -93,24 +98,13 @@ export default async function AreaPage({ params }: PageProps<'/areas/[id]'>) {
         </>
       )}
 
-      <SectionTitle>{t('area.items')}</SectionTitle>
-      {items.length === 0 ? (
-        <p className="px-2 py-4 text-muted">{t('area.noItems')}</p>
-      ) : (
-        <ul>
-          {items.map((i) => (
-            <LinkRow
-              key={i.id}
-              href={`/items/${i.id}`}
-              kind="item"
-              coverUrl={i.coverUrl}
-              title={i.name}
-              subtitle={formatDims(i, locale)}
-              badge={i.quantity > 1 ? `×${i.quantity}` : null}
-            />
-          ))}
-        </ul>
-      )}
+      <SelectableItems
+        title={t('area.items')}
+        emptyText={t('area.noItems')}
+        items={items.map((i) => ({ ...i, subtitle: formatDims(i, locale) }))}
+        pickerAreas={pickerAreas}
+        householdId={householdId}
+      />
     </div>
   );
 }

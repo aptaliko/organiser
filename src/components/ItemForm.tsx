@@ -190,7 +190,7 @@ export function ItemForm({
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(1, Math.min(1_000_000, parseInt(e.target.value, 10) || 1)))}
                 inputMode="numeric"
-                className="w-24 text-center"
+                className="!w-20 text-center"
               />
               <Button type="button" variant="secondary" className="w-12 px-0 text-xl" onClick={() => setQuantity((q) => q + 1)} aria-label="+1">
                 +

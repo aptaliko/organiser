@@ -71,8 +71,24 @@ creates `unaccent` + `pg_trgm` and the IMMUTABLE `f_unaccent()` wrapper used by 
   files go to `.local-uploads/` and are served by `/api/photos/local/[name]`. Photo rows
   point at URLs; a URL may be shared by several rows (split items), so storage is deleted only
   via `unreferencedUrls()`. Accepted URLs are whitelisted in `isAllowedPhotoUrl`.
-- **Moves are not edits**: PATCH on areas/items never changes `parentId`/`areaId` — that is the
-  move endpoint's job (milestone M3), which checks cycles and supports partial quantities.
+- **Moves are not edits**: PATCH on areas/items never changes `parentId`/`areaId`. Every
+  move goes through `POST /api/move` (items and/or places → a target, `null` = Unplaced /
+  top level). `planItemMoves` (`src/lib/moveItems.ts`, pure) turns a request into
+  relocate / split (part of a quantity → new row copying tags + photo refs) / merge
+  (same-named item already there) ops; `executeItemMoves` runs them in one `db.batch`.
+  Unset `mergeSameName` + a same-named item in the target → `409 merge_possible` so the UI
+  can ask. The response carries `undo`: more move requests (null after a merge). Place
+  moves reject cycles (`wouldCreateCycle`). Client entry points share `useMoveAction`
+  (merge prompt + "Moved · Undo" toast) and `MoveSheet` (how many? → picker).
+- **Free space** (`src/lib/space.ts`, pure): used = items directly inside (volume × qty) +
+  child places' outer volume; unknown dimensions are counted, not guessed. `loadPlaces()`
+  (`src/lib/viewModels.ts`) returns areas + per-area usage in two queries; pages pass
+  `pickerAreas` (with usage) to pickers for "~X free" / "may not fit" hints.
+- **Search** (`src/db/queries/search.ts`, `src/lib/searchService.ts`): substring match on
+  `f_unaccent(lower(…))` plus pg_trgm `word_similarity ≥ 0.5` for typos, over item name,
+  description and tags. The home screen keeps the query in the URL (`/?q=`, `/?tag=`) via
+  debounced `router.replace` and renders results on the server — don't sync it with raw
+  `history.replaceState`: on mount that runs before Next patches `history` and breaks Back.
 - **Forms** (`ItemForm`, `AreaForm`) seed dimension state with `pickDims(row)` — never the
   whole row, or spreading it into the request body resends stale fields.
 - **i18n**: `src/i18n/en.ts` is the source of truth; `el.ts` is typed

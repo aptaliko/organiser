@@ -5,6 +5,8 @@ import { useT } from '@/i18n/I18nProvider';
 import { buildTree, byName, formatPath, pathTo } from '@/lib/areaTree';
 import { loadRecent } from '@/lib/recentLocations';
 import { matchesQuery } from '@/lib/search';
+import { fits, type Usage } from '@/lib/space';
+import { formatVolume, type Dims } from '@/lib/units';
 import { ChevronRightIcon, ClockIcon, PlusIcon, SearchIcon } from './icons';
 import { Sheet } from './Sheet';
 import { Thumb } from './Thumb';
@@ -15,6 +17,14 @@ export interface PickerArea {
   parentId: number | null;
   name: string;
   coverUrl: string | null;
+  dims?: Dims;
+  usage?: Usage | null;
+}
+
+/** What's being placed, for "~X free" badges and "may not fit" hints. */
+export interface FitSubject {
+  dims: Dims;
+  quantity: number;
 }
 
 /**
@@ -30,6 +40,8 @@ export function LocationPicker({
   onCreated,
   noneLabel,
   disabledIds,
+  fitSubject,
+  title,
 }: {
   open: boolean;
   onClose: () => void;
@@ -41,8 +53,10 @@ export function LocationPicker({
   noneLabel?: string;
   /** Areas that can't be chosen (e.g. a place and its subtree, when moving it). */
   disabledIds?: Set<number>;
+  fitSubject?: FitSubject;
+  title?: string;
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [query, setQuery] = useState('');
   const [browseId, setBrowseId] = useState<number | null>(null);
   const [newName, setNewName] = useState<string | null>(null);
@@ -84,7 +98,7 @@ export function LocationPicker({
       });
       if (res.ok) {
         const { id } = (await res.json()) as { id: number };
-        onCreated({ id, name, parentId: browseId, coverUrl: null });
+        onCreated({ id, name, parentId: browseId, coverUrl: null, usage: null });
         setNewName(null);
         choose(id);
       }
@@ -96,6 +110,9 @@ export function LocationPicker({
   const row = (a: PickerArea, showPath = false) => {
     const disabled = disabledIds?.has(a.id);
     const kids = childCount.get(a.id) ?? 0;
+    const free = a.usage?.free ?? null;
+    const fit = fitSubject && a.dims && a.usage ? fits(fitSubject.dims, fitSubject.quantity, a.dims, a.usage) : null;
+    const warn = fit && !fit.ok && fit.reason !== 'unknown-dimensions';
     return (
       <li key={a.id} className="flex items-stretch">
         <button
@@ -109,6 +126,16 @@ export function LocationPicker({
             <span className="block truncate font-medium">{a.name}</span>
             {showPath && a.parentId != null && (
               <span className="block truncate text-xs text-muted">{formatPath(pathTo(byId, a.parentId))}</span>
+            )}
+            {(free !== null || warn) && (
+              <span className="flex flex-wrap gap-x-2 text-xs">
+                {free !== null && (
+                  <span className={free < 0 ? 'text-danger' : 'text-muted'}>
+                    {t('space.free', { free: formatVolume(Math.max(0, free), locale) })}
+                  </span>
+                )}
+                {warn && <span className="font-medium text-amber-600">⚠ {t('space.mayNotFit')}</span>}
+              </span>
             )}
           </span>
         </button>
@@ -128,7 +155,7 @@ export function LocationPicker({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title={t('picker.title')} closeLabel={t('common.close')}>
+    <Sheet open={open} onClose={onClose} title={title ?? t('picker.title')} closeLabel={t('common.close')}>
       <label className="relative mb-3 block">
         <span className="sr-only">{t('picker.search')}</span>
         <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
