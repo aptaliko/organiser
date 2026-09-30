@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AreaActions } from '@/components/AreaActions';
 import { Breadcrumb } from '@/components/Breadcrumb';
+import { DeleteAreaButton } from '@/components/DeleteAreaButton';
 import { FillBar } from '@/components/FillBar';
-import { PencilIcon, PinIcon, PlusIcon } from '@/components/icons';
+import { PencilIcon, PinIcon, PlusIcon, QrIcon } from '@/components/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { PhotoGallery } from '@/components/PhotoGallery';
 import { LinkRow, SectionTitle } from '@/components/Rows';
@@ -12,7 +13,7 @@ import { getArea } from '@/db/queries/areas';
 import { listItemsInArea } from '@/db/queries/items';
 import { listPhotos } from '@/db/queries/photos';
 import { getT } from '@/i18n/server';
-import { byName, effectiveAddress, pathTo } from '@/lib/areaTree';
+import { byName, descendantIds, effectiveAddress, pathTo } from '@/lib/areaTree';
 import { currentHousehold } from '@/lib/household';
 import { formatDims } from '@/lib/units';
 import { loadPlaces, mapsUrl } from '@/lib/viewModels';
@@ -33,6 +34,12 @@ export default async function AreaPage({ params }: PageProps<'/areas/[id]'>) {
   const children = areas.filter((a) => a.parentId === area.id).sort(byName);
   const address = effectiveAddress(areas, area.id);
   const dims = formatDims(area, locale);
+  const subtree = descendantIds(areas, area.id);
+  const totals = {
+    places: subtree.size - 1,
+    items: areas.filter((a) => subtree.has(a.id)).reduce((n, a) => n + a.itemCount, 0),
+  };
+  const parentName = path.length ? path[path.length - 1].name : null;
 
   return (
     <div>
@@ -78,6 +85,13 @@ export default async function AreaPage({ params }: PageProps<'/areas/[id]'>) {
           </Link>
         </div>
         <AreaActions area={{ id: area.id, name: area.name }} pickerAreas={pickerAreas} householdId={householdId} />
+        <Link
+          href={`/labels?ids=${area.id}`}
+          className="flex min-h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold text-accent hover:bg-surface-2"
+        >
+          <QrIcon className="h-5 w-5" />
+          {t('labels.printLabel')}
+        </Link>
       </div>
 
       {children.length > 0 && (
@@ -105,6 +119,7 @@ export default async function AreaPage({ params }: PageProps<'/areas/[id]'>) {
         pickerAreas={pickerAreas}
         householdId={householdId}
       />
+      <DeleteAreaButton area={{ id: area.id, name: area.name, parentId: area.parentId }} totals={totals} parentName={parentName} />
     </div>
   );
 }

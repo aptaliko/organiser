@@ -18,12 +18,12 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
 
   return (
     <ToastProvider>
-      <header className="sticky top-0 z-10 border-b border-border bg-bg/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="sticky top-0 print:hidden z-10 border-b border-border bg-bg/95 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-12 max-w-2xl items-center px-4">
           <span className="truncate text-sm font-semibold text-muted">{householdName}</span>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4 print:max-w-none print:p-0">
         {children}
       </main>
       <BottomNav />
