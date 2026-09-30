@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local env example is committed
 !.env.local.example
+
+# local photo store used when BLOB_READ_WRITE_TOKEN is unset (dev only)
+/.local-uploads/
