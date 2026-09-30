@@ -28,7 +28,8 @@ npx vitest run src/lib/units.test.ts   # single file
 npm run dev:up         # Docker Postgres + neon-http proxy, migrate, seed. `-- --reset` wipes data
 npm run dev:down       # stop the local stack
 npm run db:generate    # drizzle-kit generate — after editing src/db/schema.ts
-npm run db:migrate     # apply migrations (uses .env.local)
+npm run db:migrate     # apply migrations (uses .env.local); production builds on Vercel run
+                       # them automatically first (scripts/migrate-on-deploy.ts, VERCEL_ENV=production only)
 npm run db:seed:dev    # demo data (idempotent): demo@local / demo1234
 ```
 

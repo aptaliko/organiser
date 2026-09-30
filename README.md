@@ -55,11 +55,12 @@ Checks: `npm run lint && npm run typecheck && npm test`.
    and a **Blob** store (sets `BLOB_READ_WRITE_TOKEN`). Connect both to all environments.
 3. **Settings → Environment Variables**: add `AUTH_SECRET` (a new random value — not the one
    from `.env.local.example`) and `APP_URL=https://<your-project>.vercel.app`.
-4. Apply the migrations to the Neon database once, and again after every schema change:
-   put its `DATABASE_URL` in a local `.env.local` (without `NEON_LOCAL`) and run
-   `npm run db:migrate`. The Neon role needs permission to `CREATE EXTENSION` (the default
-   owner role has it) for `unaccent` and `pg_trgm`.
-5. Redeploy, open the `*.vercel.app` URL on your phone, register, and add it to the home screen.
+4. Nothing to run by hand for the database: every **production** build applies pending
+   migrations before building (`scripts/migrate-on-deploy.ts`, part of `npm run build`), so the
+   credentials never leave Vercel. Preview deployments and local builds skip this step. A failed
+   migration fails the deploy, and the previous version stays live. The Neon role needs
+   permission to `CREATE EXTENSION` (the default owner role has it) for `unaccent` and `pg_trgm`.
+5. Deploy (push to `main`, or Redeploy in the dashboard), open the `*.vercel.app` URL on your phone, register, and add it to the home screen.
 
 QR labels encode `APP_URL`, so set it before printing labels. If you later move to your own
 domain, labels printed with the old URL keep working only while that URL does.
